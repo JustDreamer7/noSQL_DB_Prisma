@@ -43,7 +43,10 @@ def t_file_converter(path, cluster, date_):
         plural_data_list.append([time_list, detector_list, neut_quantity_list])
     for i in range(len(main_list)):
         main_list[i].extend(plural_data_list[i])
-    return main_list
+    t_file_df = pd.DataFrame(main_list,
+                             columns=['time', 'number', 'sum_n', 'trigger', 'time_delay', 'detectors', 'n_per_step'])
+    t_file_df = t_file_df.astype({"time": float, "number": int, "sum_n": int, "trigger": int})
+    return t_file_df
 
 
 def prisma_12d_past_data_copier(date, cluster):
@@ -52,17 +55,20 @@ def prisma_12d_past_data_copier(date, cluster):
         n_file_template = f"n_{date.month:02}-{date.day:02}.{date.year - 2000:02}"
         n_file = pd.read_csv(PATH_TO_PRISMA_1_DATA + n_file_template, sep=' ', skipinitialspace=True, header=None)
         n_file = n_file.dropna(axis=1, how='all')
+        n_file.columns = ['time', 'number', 'sum_n', 'trigger'] + list(range(32))
         print("Data file: {}".format(PATH_TO_PRISMA_1_DATA + n_file_template))
         t_file = t_file_converter(PATH_TO_PRISMA_1_T_FILES, "", date)
+        n_file = n_file.merge(t_file)
     else:
         n_file_template = f"2n_{date.month:02}-{date.day:02}.{date.year - 2000:02}"
         n_file = pd.read_csv(PATH_TO_PRISMA_2_DATA + n_file_template, sep=' ', skipinitialspace=True, header=None)
         n_file = n_file.dropna(axis=1, how='all')
+        n_file.columns = ['time', 'number', 'sum_n', 'trigger'] + list(range(32))
         print("Data file: {}".format(PATH_TO_PRISMA_2_DATA + n_file_template))
         t_file = t_file_converter(PATH_TO_PRISMA_2_T_FILES, 2, date)
+        n_file = n_file.merge(t_file)
     for index in range(len(n_file.index)):
         params = list(n_file.iloc[index])
-        neutron_params = t_file[index]
         event_time = str(datetime.timedelta(seconds=params[0]))
         event_date = datetime.date(date.year, date.month, date.day)
         # event_datetime = datetime.datetime(date.year, date.month, date.day, int(event_time.split(':')[0]),
@@ -74,9 +80,9 @@ def prisma_12d_past_data_copier(date, cluster):
         amp = [int(params[j]) for j in range(4, 36, 2)]
         n = [int(params[j]) for j in range(5, 37, 2)]
 
-        n_time_delay = neutron_params[4]
-        detector = neutron_params[5]
-        n_in_step = neutron_params[6]
+        n_time_delay = params[37]
+        detector = params[36]
+        n_in_step = params[38]
 
         det_params = {}
         for i in range(1, 17):
@@ -111,7 +117,7 @@ def prisma_12d_past_data_copier(date, cluster):
 if __name__ == '__main__':
     cluster_1 = 1
     cluster_2 = 2
-    date_time_start = datetime.date(2021, 11, 1)  # посмотреть почему не собирается конец дня 2018-04-22
+    date_time_start = datetime.date(2021, 3, 12)  # посмотреть почему не собирается конец дня 2018-04-22
     date_time_stop = datetime.date(2021, 11, 30)
     LIST_OF_DATES = [(date_time_start + datetime.timedelta(days=i)) for i in
                      range((date_time_stop - date_time_start).days + 1)]
