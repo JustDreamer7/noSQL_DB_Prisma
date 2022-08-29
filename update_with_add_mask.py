@@ -21,8 +21,8 @@ def update_with_add_mask(date_, binary_n_mask_1, binary_amp_mask_1, binary_n_mas
 
 
 if __name__ == '__main__':
-    date_time_start = datetime.date(2021, 11, 1)  # посмотреть почему не собирается конец дня 2018-04-22
-    date_time_stop = datetime.date(2021, 11, 30)
+    date_time_start = datetime.date(2021, 12, 1)  # посмотреть почему не собирается конец дня 2018-04-22
+    date_time_stop = datetime.date(2021, 12, 31)
     binary_n_mask_1, binary_amp_mask_1, binary_n_mask_2, binary_amp_mask_2 = sqlmask_converter(date_time_start,
                                                                                                date_time_stop)
     LIST_OF_DATES = [(date_time_start + datetime.timedelta(days=i)) for i in

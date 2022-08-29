@@ -47,6 +47,7 @@ def prepare_to_merge_7d(date, cluster):
         pymongo.MongoClient(DB_URL)["prisma-32_db"][f'{str(date)}_7d'].find({'cluster': cluster}))
 
     amp_dict = defaultdict(list)
+    print(data_cl)
     for item in data_cl['detectors']:
         for j in [f'det_{i:02}' for i in range(1, 17)]:
             amp_dict[j].append(item[j]['amplitude'])

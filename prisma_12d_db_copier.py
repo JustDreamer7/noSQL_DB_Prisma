@@ -1,6 +1,7 @@
-import pymongo
-import pandas as pd
 import datetime
+
+import pandas as pd
+import pymongo
 
 from config_info.config import *
 
@@ -69,19 +70,19 @@ def prisma_12d_past_data_copier(date, cluster):
         n_file = n_file.merge(t_file)
     for index in range(len(n_file.index)):
         params = list(n_file.iloc[index])
-        event_time = str(datetime.timedelta(seconds=params[0]))
-        event_date = datetime.date(date.year, date.month, date.day)
-        # event_datetime = datetime.datetime(date.year, date.month, date.day, int(event_time.split(':')[0]),
-        #                                    int(event_time.split(':')[1]), int(float(event_time.split(':')[2])),
-        #                                    int(round(
-        #                                        float(event_time.split(':')[2]) - int(float(event_time.split(':')[2])),
-        #                                        2) * 10 ** 6))
+        event_time = str(datetime.timedelta(seconds=params[0]))  # перевод в utc-формат
+        # event_date = (datetime.timedelta(seconds=params[0]) + datetime.timedelta(hours=3)).date()
+        event_datetime = datetime.datetime(date.year, date.month, date.day, int(event_time.split(':')[0]),
+                                           int(event_time.split(':')[1]), int(float(event_time.split(':')[2])),
+                                           int(round(
+                                               float(event_time.split(':')[2]) - int(float(event_time.split(':')[2])),
+                                               2) * 10 ** 6)) - datetime.timedelta(hours=3)
         trigger = params[3]
         amp = [int(params[j]) for j in range(4, 36, 2)]
         n = [int(params[j]) for j in range(5, 37, 2)]
 
-        n_time_delay = params[37]
-        detector = params[36]
+        n_time_delay = params[36]
+        detector = params[37]
         n_in_step = params[38]
 
         det_params = {}
@@ -99,10 +100,11 @@ def prisma_12d_past_data_copier(date, cluster):
 
         try:
             new_record = {
-                '_id': f'{event_date}_{cluster:02}_12d_{int(event_time.split(":")[0]):02}:' +
-                       f'{int(event_time.split(":")[1]):02}:{int(float(event_time.split(":")[2])):02}.' +
-                       f'{int(round(float(event_time.split(":")[2]) - int(float(event_time.split(":")[2])), 2) * 10 ** 3):03}.000.000',
-                'time_ns': int(params[0] * 10e8),
+                '_id': f'{event_datetime.date()}_{cluster:02}_12d_{int(event_datetime.hour):02}:' +
+                       f'{int(event_datetime.minute):02}:{int(event_datetime.second):02}.' +
+                       f'{str(event_datetime.microsecond)[:3]}.000.000',
+                'time_ns': int((int(event_datetime.hour) * 1440 + int(event_datetime.minute) * 60 + int(
+                    event_datetime.second)) * 10e8 + int(event_datetime.microsecond) * 1000),
                 'cluster': cluster,
                 'trigger': int(trigger),
                 'detectors': det_params
@@ -110,15 +112,15 @@ def prisma_12d_past_data_copier(date, cluster):
             ins_result = collection_prisma.insert_one(new_record)
             print(f'Copied - {ins_result.inserted_id}')
         except pymongo.errors.DuplicateKeyError:
-            print(f'Ошибка - {event_date}-{event_time}')
+            print(f'Ошибка - {event_datetime.date()}-{event_time}')
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     cluster_1 = 1
     cluster_2 = 2
-    date_time_start = datetime.date(2021, 3, 12)  # посмотреть почему не собирается конец дня 2018-04-22
-    date_time_stop = datetime.date(2021, 11, 30)
+    date_time_start = datetime.date(2021, 12, 1)  # посмотреть почему не собирается конец дня 2018-04-22
+    date_time_stop = datetime.date(2021, 12, 31)
     LIST_OF_DATES = [(date_time_start + datetime.timedelta(days=i)) for i in
                      range((date_time_stop - date_time_start).days + 1)]
     for date in LIST_OF_DATES:
