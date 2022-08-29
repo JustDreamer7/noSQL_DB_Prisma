@@ -9,7 +9,7 @@ prisma_db = db_client["prisma-32_db"]
 
 
 def prisma_7d_past_data_copier(date, cluster):
-    collection_prisma = prisma_db[f'{str(date)}_7d']
+
     if cluster == 1:
         n7_file_template = f"n7_{date.month:02}-{date.day:02}.{date.year - 2000:02}"
         n7_file = pd.read_csv(PATH_TO_PRISMA_1_7d_DATA + n7_file_template, sep=' ', skipinitialspace=True, header=None)
@@ -52,6 +52,7 @@ def prisma_7d_past_data_copier(date, cluster):
                 'trigger': int(trigger),
                 'detectors': det_params
             }
+            collection_prisma = prisma_db[f'{str(event_datetime.date())}_7d']
             ins_result = collection_prisma.insert_one(new_record)
             print(f'Copied - {ins_result.inserted_id}')
         except pymongo.errors.DuplicateKeyError:

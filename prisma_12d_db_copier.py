@@ -51,7 +51,6 @@ def t_file_converter(path, cluster, date_):
 
 
 def prisma_12d_past_data_copier(date, cluster):
-    collection_prisma = prisma_db[f'{str(date)}_12d']
     if cluster == 1:
         n_file_template = f"n_{date.month:02}-{date.day:02}.{date.year - 2000:02}"
         n_file = pd.read_csv(PATH_TO_PRISMA_1_DATA + n_file_template, sep=' ', skipinitialspace=True, header=None)
@@ -60,6 +59,8 @@ def prisma_12d_past_data_copier(date, cluster):
         print("Data file: {}".format(PATH_TO_PRISMA_1_DATA + n_file_template))
         t_file = t_file_converter(PATH_TO_PRISMA_1_T_FILES, "", date)
         n_file = n_file.merge(t_file)
+        fix_end_time_series = n_file['time'].lt(n_file['time'].shift())
+        bad_end_time_index = fix_end_time_series[fix_end_time_series == True].index
     else:
         n_file_template = f"2n_{date.month:02}-{date.day:02}.{date.year - 2000:02}"
         n_file = pd.read_csv(PATH_TO_PRISMA_2_DATA + n_file_template, sep=' ', skipinitialspace=True, header=None)
@@ -68,11 +69,20 @@ def prisma_12d_past_data_copier(date, cluster):
         print("Data file: {}".format(PATH_TO_PRISMA_2_DATA + n_file_template))
         t_file = t_file_converter(PATH_TO_PRISMA_2_T_FILES, 2, date)
         n_file = n_file.merge(t_file)
+        fix_end_time_series = n_file['time'].lt(n_file['time'].shift())
+        bad_end_time_index = fix_end_time_series[fix_end_time_series == True].index
     for index in range(len(n_file.index)):
         params = list(n_file.iloc[index])
-        event_time = str(datetime.timedelta(seconds=params[0]))  # перевод в utc-формат
+        event_time = str(datetime.timedelta(seconds=params[0]))
         # event_date = (datetime.timedelta(seconds=params[0]) + datetime.timedelta(hours=3)).date()
         event_datetime = datetime.datetime(date.year, date.month, date.day, int(event_time.split(':')[0]),
+                                           int(event_time.split(':')[1]), int(float(event_time.split(':')[2])),
+                                           int(round(
+                                               float(event_time.split(':')[2]) - int(float(event_time.split(':')[2])),
+                                               2) * 10 ** 6)) - datetime.timedelta(hours=3)
+        if index >= bad_end_time_index:
+            new_date = date + datetime.timedelta(days=1)
+            event_datetime = datetime.datetime(new_date.year, new_date.month, new_date.day, int(event_time.split(':')[0]),
                                            int(event_time.split(':')[1]), int(float(event_time.split(':')[2])),
                                            int(round(
                                                float(event_time.split(':')[2]) - int(float(event_time.split(':')[2])),
@@ -109,10 +119,12 @@ def prisma_12d_past_data_copier(date, cluster):
                 'trigger': int(trigger),
                 'detectors': det_params
             }
+            collection_prisma = prisma_db[f'{str(event_datetime.date())}_12d']
             ins_result = collection_prisma.insert_one(new_record)
             print(f'Copied - {ins_result.inserted_id}')
         except pymongo.errors.DuplicateKeyError:
-            print(f'Ошибка - {event_datetime.date()}-{event_time}')
+            pass
+            # print(f'Ошибка - {event_datetime.date()}-{event_time}')
 
 
 # Press the green button in the gutter to run the script.
@@ -120,7 +132,7 @@ if __name__ == '__main__':
     cluster_1 = 1
     cluster_2 = 2
     date_time_start = datetime.date(2021, 12, 1)  # посмотреть почему не собирается конец дня 2018-04-22
-    date_time_stop = datetime.date(2021, 12, 31)
+    date_time_stop = datetime.date(2021, 12, 1)
     LIST_OF_DATES = [(date_time_start + datetime.timedelta(days=i)) for i in
                      range((date_time_stop - date_time_start).days + 1)]
     for date in LIST_OF_DATES:
