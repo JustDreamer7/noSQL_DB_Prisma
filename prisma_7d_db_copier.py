@@ -1,6 +1,7 @@
-import pymongo
-import pandas as pd
 import datetime
+
+import pandas as pd
+import pymongo
 
 from config_info.config import *
 
@@ -9,28 +10,46 @@ prisma_db = db_client["prisma-32_db"]
 
 
 def prisma_7d_past_data_copier(date, cluster):
-
     if cluster == 1:
         n7_file_template = f"n7_{date.month:02}-{date.day:02}.{date.year - 2000:02}"
         n7_file = pd.read_csv(PATH_TO_PRISMA_1_7d_DATA + n7_file_template, sep=' ', skipinitialspace=True, header=None)
         n7_file = n7_file.dropna(axis=1, how='all')
+        for i in range(len(n7_file[0])):
+            if type(n7_file[0][i]) is str:
+                n7_file.loc[i,0] = float('.'.join(n7_file.loc[i,0].split(',')))
         print("Data file: {}".format(PATH_TO_PRISMA_1_7d_DATA + n7_file_template))
+        fix_end_time_series = n7_file[0].lt(n7_file[0].shift())
+        bad_end_time_index = fix_end_time_series[fix_end_time_series == True].index
     else:
         n7_file_template = f"2n7_{date.month:02}-{date.day:02}.{date.year - 2000:02}"
         n7_file = pd.read_csv(PATH_TO_PRISMA_2_7d_DATA + n7_file_template, sep=' ', skipinitialspace=True, header=None)
         n7_file = n7_file.dropna(axis=1, how='all')
+        for i in range(len(n7_file[0])):
+            if type(n7_file[0][i]) is str:
+                n7_file.loc[i,0] = float('.'.join(n7_file.loc[i,0].split(',')))
         print("Data file: {}".format(PATH_TO_PRISMA_2_7d_DATA + n7_file_template))
+        fix_end_time_series = n7_file[0].lt(n7_file[0].shift())
+        bad_end_time_index = fix_end_time_series[fix_end_time_series == True].index
     for index in range(len(n7_file.index)):
         params = list(n7_file.iloc[index])
-        if type(params[0]) is str:
-            params[0] = float('.'.join(params[0].split(',')))
+        # if type(params[0]) is str:
+        #     params[0] = float('.'.join(params[0].split(',')))
         event_time = str(datetime.timedelta(seconds=params[0]))  # перевод в utc-формат
         # event_date = (datetime.timedelta(seconds=params[0]) + datetime.timedelta(hours=3)).date()
         event_datetime = datetime.datetime(date.year, date.month, date.day, int(event_time.split(':')[0]),
                                            int(event_time.split(':')[1]), int(float(event_time.split(':')[2])),
                                            int(round(
                                                float(event_time.split(':')[2]) - int(float(event_time.split(':')[2])),
-                                               2) * 10 ** 6)) - datetime.timedelta(hours=3)
+                                               2) * 10 ** 6)) - datetime.timedelta(hours=4)
+        if index >= bad_end_time_index:
+            new_date = date + datetime.timedelta(days=1)
+            event_datetime = datetime.datetime(new_date.year, new_date.month, new_date.day,
+                                               int(event_time.split(':')[0]),
+                                               int(event_time.split(':')[1]), int(float(event_time.split(':')[2])),
+                                               int(round(
+                                                   float(event_time.split(':')[2]) - int(
+                                                       float(event_time.split(':')[2])),
+                                                   2) * 10 ** 6)) - datetime.timedelta(hours=4)
         trigger = params[2]
         amp = [int(params[j]) for j in range(3, 19)]
 

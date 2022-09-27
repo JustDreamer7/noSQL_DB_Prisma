@@ -79,14 +79,14 @@ def prisma_12d_past_data_copier(date, cluster):
                                            int(event_time.split(':')[1]), int(float(event_time.split(':')[2])),
                                            int(round(
                                                float(event_time.split(':')[2]) - int(float(event_time.split(':')[2])),
-                                               2) * 10 ** 6)) - datetime.timedelta(hours=3)
+                                               2) * 10 ** 6)) - datetime.timedelta(hours=4)
         if index >= bad_end_time_index:
             new_date = date + datetime.timedelta(days=1)
             event_datetime = datetime.datetime(new_date.year, new_date.month, new_date.day, int(event_time.split(':')[0]),
                                            int(event_time.split(':')[1]), int(float(event_time.split(':')[2])),
                                            int(round(
                                                float(event_time.split(':')[2]) - int(float(event_time.split(':')[2])),
-                                               2) * 10 ** 6)) - datetime.timedelta(hours=3)
+                                               2) * 10 ** 6)) - datetime.timedelta(hours=4)
         trigger = params[3]
         amp = [int(params[j]) for j in range(4, 36, 2)]
         n = [int(params[j]) for j in range(5, 37, 2)]
@@ -123,8 +123,7 @@ def prisma_12d_past_data_copier(date, cluster):
             ins_result = collection_prisma.insert_one(new_record)
             print(f'Copied - {ins_result.inserted_id}')
         except pymongo.errors.DuplicateKeyError:
-            pass
-            # print(f'Ошибка - {event_datetime.date()}-{event_time}')
+            print(f'Ошибка - {event_datetime.date()}-{event_time}')
 
 
 # Press the green button in the gutter to run the script.
