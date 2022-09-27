@@ -8,6 +8,10 @@ import pymongo
 
 class DbFileReader(FileReader):
     # __DB_URL = "mongodb://localhost:27017/"
+    __amp_n_cols = []
+    for i in range(1, 17):
+        __amp_n_cols.append(f'amp{i}')
+        __amp_n_cols.append(f'n{i}')
 
     def __init__(self, cluster, single_date, db_url):
         self.cluster = cluster
@@ -44,32 +48,24 @@ class DbFileReader(FileReader):
                                 ignore_index=True)
         return concat_n_df
 
+    @staticmethod
+    def db_preparing_data(start_date, end_date, path_to_db):
+        concat_n_df_1 = pd.DataFrame(columns=['Date', 'time', 'trigger'] + DbFileReader.__amp_n_cols)
+        concat_n_df_2 = pd.DataFrame(columns=['Date', 'time', 'trigger'] + DbFileReader.__amp_n_cols)
+        for single_date in pd.date_range(start_date, end_date):
+            try:
+                db_file_reader_1 = DbFileReader(cluster=1, single_date=single_date, db_url=path_to_db)
+                concat_n_df_1 = db_file_reader_1.concat_n_data(concat_n_df=concat_n_df_1)
+            except FileNotFoundError:
+                print(
+                    f"File n_{single_date.month:02}-" +
+                    f"{single_date.day:02}.{single_date.year - 2000:02}', does not exist")
+            try:
+                db_file_reader_1 = DbFileReader(cluster=2, single_date=single_date, db_url=path_to_db)
+                concat_n_df_2 = db_file_reader_1.concat_n_data(concat_n_df=concat_n_df_2)
+            except FileNotFoundError:
+                print(
+                    f"File 2n_{single_date.month:02}-" +
+                    f"{single_date.day:02}.{single_date.year - 2000:02}', does not exist")
 
-def db_preparing_data(start_date, end_date, path_to_db):
-    concat_n_df_1 = pd.DataFrame(columns=['Date', 'time', 'trigger'] + DbFileReader.__amp_n_cols)
-    concat_n_df_2 = pd.DataFrame(columns=['Date', 'time', 'trigger'] + DbFileReader.__amp_n_cols)
-    for single_date in pd.date_range(start_date, end_date):
-        try:
-            db_file_reader_1 = DbFileReader(cluster=1, single_date=single_date, db_url=path_to_db)
-            concat_n_df_1 = db_file_reader_1.concat_n_data(concat_n_df=concat_n_df_1)
-        except FileNotFoundError:
-            print(
-                f"File n_{single_date.month:02}-" +
-                f"{single_date.day:02}.{single_date.year - 2000:02}', does not exist")
-        try:
-            db_file_reader_1 = DbFileReader(cluster=2, single_date=single_date, db_url=path_to_db)
-            concat_n_df_2 = db_file_reader_1.concat_n_data(concat_n_df=concat_n_df_2)
-        except FileNotFoundError:
-            print(
-                f"File 2n_{single_date.month:02}-" +
-                f"{single_date.day:02}.{single_date.year - 2000:02}', does not exist")
-
-    return concat_n_df_1, concat_n_df_2
-
-# if __name__ == '__main__':
-#     date_time_start = datetime.date(2021, 11, 1)  # посмотреть почему не собирается конец дня 2018-04-22
-#     date_time_stop = datetime.date(2021, 11, 1)
-#     LIST_OF_DATES = [(date_time_start + datetime.timedelta(days=i)) for i in
-#                      range((date_time_stop - date_time_start).days + 1)]
-#     for date in LIST_OF_DATES:
-#         print(DbFileReader(cluster=1, single_date=date, db_url="mongodb://localhost:27017/").reading_db())
+        return concat_n_df_1, concat_n_df_2

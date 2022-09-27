@@ -1,8 +1,8 @@
 import datetime
 from noSQL_db_Prisma import NoSQLPrisma
 
-date_time_start = datetime.date(2021, 12, 1)  # посмотреть почему не собирается конец дня 2018-04-22
-date_time_stop = datetime.date(2021, 12, 31)
+date_time_start = datetime.date(2021, 10, 1)  # посмотреть почему не собирается конец дня 2018-04-22
+date_time_stop = datetime.date(2021, 10, 31)
 LIST_OF_DATES = [(date_time_start + datetime.timedelta(days=i)) for i in
                  range((date_time_stop - date_time_start).days + 1)]
 for date in LIST_OF_DATES:
