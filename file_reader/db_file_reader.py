@@ -44,7 +44,7 @@ class DbFileReader(FileReader):
     def concat_n_data(self, concat_n_df):
         data_cl = self.reading_db
         # noinspection PyUnresolvedReferences
-        concat_n_df = pd.concat([concat_n_df, data_cl[['Date', 'time', 'trigger'] + DbFileReader.__amp_n_cols]],
+        concat_n_df = pd.concat([concat_n_df, data_cl[['Date', 'time', 'trigger'] + self.__class__.__amp_n_cols]],
                                 ignore_index=True)
         return concat_n_df
 

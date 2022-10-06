@@ -6,6 +6,9 @@ from config_info.config import *
 from file_reader.file_reader import FileReader
 
 
+# from pathlib import Path
+
+
 # noinspection DuplicatedCode
 class NoSQLPrisma:
     __DB_URL = DB_URL
@@ -16,10 +19,10 @@ class NoSQLPrisma:
         self.cluster = cluster
         self.single_date = single_date
         self.file_reader = FileReader(cluster=self.cluster, single_date=self.single_date,
-                                      path_to_files=f"D:\\PRISMA20\\P{self.cluster}")
+                                      path_to_files=f'z:\\PRISMA-32\\DataArchive\\P{self.cluster}\\data{self.single_date.year}')
 
-    def __del__(self):
-        pass
+    # def __del__(self):
+    #     pass
 
     def dinods_data_copier(self, event_datetime, trigger, det_params, dinode):
         try:
@@ -40,9 +43,8 @@ class NoSQLPrisma:
             print(f'Ошибка - {event_datetime.date()}-{event_datetime.time()}')
 
     def prisma_12d_past_data_copier(self):
-
-        t_file = self.file_reader.reading_t_file()
         n_file_today, n_file_day_after = self.file_reader.reading_n_file()
+        t_file = self.file_reader.reading_t_file()
         n_file_today = n_file_today.merge(t_file)
         self.make_parameters_from_df_12_d(n_file_today, self.single_date)
         if any(n_file_day_after):
@@ -115,4 +117,4 @@ class NoSQLPrisma:
                 }
             self.dinods_data_copier(event_datetime=event_datetime, trigger=trigger,
                                     det_params=det_params, dinode=7)
-            return None
+        return None

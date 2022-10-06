@@ -2,6 +2,9 @@ import datetime
 import pandas as pd
 
 
+# from pathlib import Path
+
+
 class FileReader:
     __amp_n_cols = []
     for i in range(1, 17):
@@ -26,20 +29,22 @@ class FileReader:
         pass
 
     def making_file_path(self, file_type):
-        file_path = f'{self.path_to_files}\\{file_type}\\{self.cluster_n}{file_type}_{self.single_date.month:02}-{self.single_date.day:02}.{self.single_date.year - 2000:02} '
+        file_path = f'{self.path_to_files}\\{file_type}\\{self.cluster_n}{file_type}_{self.single_date.month:02}-{self.single_date.day:02}.{self.single_date.year - 2000:02}'
         return file_path
 
     def making_file_path_eas_p(self, file_directory, file_type):
-        file_path = f'{self.path_to_files}\\{file_directory}\\{self.cluster}{file_type}_{self.single_date.month:02}-{self.single_date.day:02}.{self.single_date.year - 2000:02}'
+        file_path = f'{self.path_to_files}/{file_directory}/{self.cluster}{file_type}_{self.single_date.month:02}-{self.single_date.day:02}.{self.single_date.year - 2000:02}'
         return file_path
 
     def reading_n_file(self):
         """Метод, прочитывающий n-файлы, возвращающий датафрейм дня на выходе. Или возвращающий filenotfounderror, если
                 файла нет"""
+        print(self.n_file_path)
         n_file = pd.read_csv(self.n_file_path,
                              sep=r'\s[-]*\s*', header=None, skipinitialspace=True, index_col=False, engine='python')
         n_file.dropna(axis=1, how='all', inplace=True)
-        n_file.columns = ['time', 'number', 'sum_n', 'trigger'] + FileReader.__amp_n_cols
+        n_file.columns = ['time', 'number', 'sum_n', 'trigger'] + self.__class__.__amp_n_cols
+        n_file = n_file[n_file['time'] < 86400]
         time_difference = n_file['time'].diff()
         bad_end_time_index = time_difference[time_difference < -10000].index
         if any(bad_end_time_index):
@@ -49,18 +54,20 @@ class FileReader:
         return n_file, []
 
     def reading_n7_file(self):
+        print(self.n7_file_path)
         n7_file = pd.read_csv(self.n7_file_path,
                               sep=r'\s[-]*\s*', header=None, skipinitialspace=True, index_col=False, engine='python')
         n7_file.dropna(axis=1, how='all', inplace=True)
-        for i in range(len(n7_file[0])):
-            if type(n7_file[0][i]) is str:
-                n7_file.loc[i, 0] = float('.'.join(n7_file.loc[i, 0].split(',')))
+        n7_file[0] = n7_file[0].apply(lambda x: str(x).replace(',', '.')) # add this rows to file-twink
+        n7_file = n7_file.astype({0: float})
+        n7_file = n7_file[n7_file[0] < 86400]
         time_difference = n7_file[0].diff()
         bad_end_time_index = time_difference[time_difference < -10000].index
         if any(bad_end_time_index):
             n7_file_today = n7_file[n7_file.index < bad_end_time_index[0]]
             n7_file_day_after = n7_file[n7_file.index >= bad_end_time_index[0]]
             return n7_file_today, n7_file_day_after
+
         return n7_file, []
 
     @staticmethod
@@ -113,6 +120,7 @@ class FileReader:
                                  columns=['time', 'number', 'sum_n', 'trigger', 'time_delay', 'detectors',
                                           'n_per_step'])
         t_file_df = t_file_df.astype({"time": float, "number": int, "sum_n": int, "trigger": int})
+        t_file_df = t_file_df[t_file_df["time"] < 86400]
         return t_file_df
 
     def reading_p_file(self):
