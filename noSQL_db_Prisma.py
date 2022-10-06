@@ -44,23 +44,32 @@ class NoSQLPrisma:
 
     def prisma_12d_past_data_copier(self):
         n_file_today, n_file_day_after = self.file_reader.reading_n_file()
-        t_file = self.file_reader.reading_t_file()
-        n_file_today = n_file_today.merge(t_file)
-        self.make_parameters_from_df_12_d(n_file_today, self.single_date)
-        if any(n_file_day_after):
-            n_file_day_after = n_file_day_after.merge(t_file)
-            self.make_parameters_from_df_12_d(n_file_day_after,
+        try:
+            t_file = self.file_reader.reading_t_file()
+            n_file_today = n_file_today.merge(t_file)
+            self.make_params_from_df_12_d(n_file_today, self.single_date)
+            if any(n_file_day_after):
+                n_file_day_after = n_file_day_after.merge(t_file)
+                self.make_params_from_df_12_d(n_file_day_after,
                                               self.single_date + datetime.timedelta(
                                                   days=1))
+        except FileNotFoundError:
+            with open(f't_{self.cluster}cl_files_not_found.txt', 'a+') as f:
+                f.write(f't-файла {self.cluster}-го кластера от {self.single_date} не существует\n')
+            self.make_params_from_df_12_d_no_t(n_file_today, self.single_date)
+            if any(n_file_day_after):
+                self.make_params_from_df_12_d_no_t(n_file_day_after,
+                                                   self.single_date + datetime.timedelta(
+                                                       days=1))
 
     def prisma_7d_past_data_copier(self):
         n7_file_today, n7_file_day_after = self.file_reader.reading_n7_file()
-        self.make_parameters_from_df_7_d(n7_file_today, self.single_date)
+        self.make_params_from_df_7_d(n7_file_today, self.single_date)
         if any(n7_file_day_after):
-            self.make_parameters_from_df_7_d(n7_file_day_after,
-                                             self.single_date + datetime.timedelta(days=1))
+            self.make_params_from_df_7_d(n7_file_day_after,
+                                         self.single_date + datetime.timedelta(days=1))
 
-    def make_parameters_from_df_12_d(self, df, date):
+    def make_params_from_df_12_d(self, df, date):
         for index in range(len(df.index)):
             params = list(df.iloc[index])
             event_time = str(datetime.timedelta(seconds=params[0]))
@@ -95,7 +104,7 @@ class NoSQLPrisma:
                                     det_params=det_params, dinode=12)
         return None
 
-    def make_parameters_from_df_7_d(self, df, date):
+    def make_params_from_df_7_d(self, df, date):
         for index in range(len(df.index)):
             params = list(df.iloc[index])
             event_time = str(datetime.timedelta(seconds=params[0]))  # перевод в utc-формат
@@ -117,4 +126,31 @@ class NoSQLPrisma:
                 }
             self.dinods_data_copier(event_datetime=event_datetime, trigger=trigger,
                                     det_params=det_params, dinode=7)
+        return None
+
+    def make_params_from_df_12_d_no_t(self, df, date):
+        for index in range(len(df.index)):
+            params = list(df.iloc[index])
+            event_time = str(datetime.timedelta(seconds=params[0]))
+            event_datetime = datetime.datetime(date.year, date.month, date.day,
+                                               int(event_time.split(':')[0]),
+                                               int(event_time.split(':')[1]), int(float(event_time.split(':')[2])),
+                                               int(round(
+                                                   float(event_time.split(':')[2]) - int(
+                                                       float(event_time.split(':')[2])),
+                                                   2) * 10 ** 6)) - datetime.timedelta(hours=4)
+            trigger = params[3]
+            amp = [int(params[j]) for j in range(4, 36, 2)]
+            n = [int(params[j]) for j in range(5, 37, 2)]
+
+            det_params = {}
+            for i in range(1, 17):
+                #  В БД будут оставаться пустые списки при нуле нейтронов, надо ли это фиксить?
+                det_params[f'det_{i:02}'] = {
+                    'amplitude': amp[i - 1],
+                    'neutrons': n[i - 1],
+                    'time_delay': False
+                }
+            self.dinods_data_copier(event_datetime=event_datetime, trigger=trigger,
+                                    det_params=det_params, dinode=12)
         return None
