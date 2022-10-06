@@ -19,7 +19,7 @@ class NoSQLPrisma:
         self.cluster = cluster
         self.single_date = single_date
         self.file_reader = FileReader(cluster=self.cluster, single_date=self.single_date,
-                                      path_to_files=f'z:\\PRISMA-32\\DataArchive\\P{self.cluster}\\data{self.single_date.year}')
+                                      path_to_files=f'z:\\PRISMA-32\\DataArchive\\DATA P{self.cluster} archive\\data{self.single_date.year}')
 
     # def __del__(self):
     #     pass

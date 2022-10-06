@@ -55,13 +55,23 @@ class FileReader:
 
     def reading_n7_file(self):
         print(self.n7_file_path)
-        n7_file = pd.read_csv(self.n7_file_path,
-                              sep=r'\s[-]*\s*', header=None, skipinitialspace=True, index_col=False, engine='python')
-        n7_file.dropna(axis=1, how='all', inplace=True)
-        n7_file[0] = n7_file[0].apply(lambda x: str(x).replace(',', '.')) # add this rows to file-twink
-        n7_file = n7_file.astype({0: float})
-        n7_file = n7_file[n7_file[0] < 86400]
-        time_difference = n7_file[0].diff()
+        try:
+            n7_file = pd.read_csv(self.n7_file_path,
+                                  sep=r'\s[-]*\s*', header=None, skipinitialspace=True, index_col=False,
+                                  engine='python')
+            n7_file.dropna(axis=1, how='all', inplace=True)
+            n7_file.columns = ['time', 'number', 'trigger'] + [f'amp{i}' for i in range(1, 17)]
+        except ValueError:
+            self.n7_file_conventer()
+            n7_file = pd.read_csv(self.n7_file_path,
+                                  sep=r'\s[-]*\s*', header=None, skipinitialspace=True, index_col=False,
+                                  engine='python')
+            n7_file.dropna(axis=1, how='all', inplace=True)
+            n7_file.columns = ['time', 'number', 'trigger'] + [f'amp{i}' for i in range(1, 17)]
+        n7_file['time'] = n7_file['time'].apply(lambda x: str(x).replace(',', '.'))  # add this rows to file-twink
+        n7_file = n7_file.astype({'time': float})
+        n7_file = n7_file[n7_file['time'] < 86400]
+        time_difference = n7_file['time'].diff()
         bad_end_time_index = time_difference[time_difference < -10000].index
         if any(bad_end_time_index):
             n7_file_today = n7_file[n7_file.index < bad_end_time_index[0]]
@@ -122,6 +132,18 @@ class FileReader:
         t_file_df = t_file_df.astype({"time": float, "number": int, "sum_n": int, "trigger": int})
         t_file_df = t_file_df[t_file_df["time"] < 86400]
         return t_file_df
+
+    def n7_file_conventer(self):
+        with open(self.n7_file_path, 'r') as f:
+            raw_data = f.readlines()
+        if len(list(filter(lambda x: x != '', raw_data[0].rstrip().split(' ')))) < 5:
+            start_of_strings = [line.rstrip() for line in raw_data[::2]]
+            end_of_strings = raw_data[1::2]
+            raw_data = [x + ' ' + y for x, y in zip(start_of_strings, end_of_strings)]
+            with open(self.n7_file_path, 'w') as f:
+                f.writelines(raw_data)
+        else:
+            raise FileNotFoundError
 
     def reading_p_file(self):
         """Метод, прочитывающий p-файлы, возвращающий датафрейм дня на выходе. Или возвращающий filenotfounderror, если
