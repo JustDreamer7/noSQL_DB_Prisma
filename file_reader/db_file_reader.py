@@ -22,7 +22,7 @@ class DbFileReader(FileReader):
         """Метод, прочитывающий noSQL БД ПРИЗМА-32 с помощью DB_URL"""
 
         data_cl = pd.DataFrame.from_records(
-            pymongo.MongoClient(self.__db_url)["prisma-32_db"][f'{str(self.single_date)}_12d'].find(
+            pymongo.MongoClient(self.__db_url)["prisma-32_db"][f'{str(self.single_date.date())}_12d'].find(
                 {'cluster': self.cluster}))
         if data_cl.empty:
             raise FileNotFoundError
@@ -37,14 +37,14 @@ class DbFileReader(FileReader):
             data_cl[f'amp{i}'] = amp_dict[f'det_{i:02}']
             data_cl[f'n{i}'] = n_dict[f'det_{i:02}']
         data_cl['time'] = [round(item / 1e9, 2) for item in data_cl['time_ns']]
-        data_cl['Date'] = [datetime.date(item[0:3], item[5:6], item[8:9]) for item in data_cl['time_ns']]
+        data_cl['Date'] = [datetime.date(int(item[0:4]), int(item[5:7]), int(item[8:10])) for item in data_cl['_id']]
 
         return data_cl
 
     def concat_n_data(self, concat_n_df):
-        data_cl = self.reading_db
+        data_cl = self.reading_db()
         # noinspection PyUnresolvedReferences
-        concat_n_df = pd.concat([concat_n_df, data_cl[['Date', 'time', 'trigger'] + self.__class__.__amp_n_cols]],
+        concat_n_df = pd.concat([concat_n_df, data_cl[['Date', 'time', 'trigger'] + DbFileReader.__amp_n_cols]],
                                 ignore_index=True)
         return concat_n_df
 
