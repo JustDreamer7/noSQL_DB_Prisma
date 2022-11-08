@@ -62,7 +62,7 @@ class NoSQLPrisma:
                                                   days=1))
         # Идет проброс исключение на существование t-файла и вызывается метод make_params_from_df_12_d_no_t
         except FileNotFoundError:
-            with open(f't_{self.cluster}cl_files_not_found.txt', 'a+', encoding='utf-8') as t_log_file:
+            with open(f'files_not_found/t_{self.cluster}cl_files_not_found.txt', 'a+', encoding='utf-8') as t_log_file:
                 t_log_file.write(f't-файла {self.cluster}-го кластера от {self.single_date} не существует\n')
             self.make_params_from_df_12_d_no_t(n_file_today, self.single_date)
             if any(n_file_day_after):

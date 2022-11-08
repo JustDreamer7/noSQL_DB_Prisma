@@ -11,22 +11,22 @@ for date in LIST_OF_DATES:
     try:
         NoSQLPrisma(cluster=1, single_date=date).prisma_12d_past_data_copier()
     except FileNotFoundError:
-        with open('n_1cl_files_not_found.txt', 'a+', encoding='utf-8') as f:
+        with open('files_not_found/n_1cl_files_not_found.txt', 'a+', encoding='utf-8') as f:
             f.write(f'n-файла 1-го кластера от {date} не существует\n')
     try:
         NoSQLPrisma(cluster=2, single_date=date).prisma_12d_past_data_copier()
     except FileNotFoundError:
 
-        with open('n_2cl_files_not_found.txt', 'a+', encoding='utf-8') as f:
+        with open('files_not_found/n_2cl_files_not_found.txt', 'a+', encoding='utf-8') as f:
             f.write(f'n-файла 2-го кластера от {date} не существует\n')
     try:
         NoSQLPrisma(cluster=1, single_date=date).prisma_7d_past_data_copier()
     except FileNotFoundError:
-        with open('n7_1cl_files_not_found.txt', 'a+', encoding='utf-8') as f:
+        with open('files_not_found/n7_1cl_files_not_found.txt', 'a+', encoding='utf-8') as f:
             f.write(f'n7-файла 1-го кластера от {date} не существует\n')
     try:
         NoSQLPrisma(cluster=2, single_date=date).prisma_7d_past_data_copier()
     except FileNotFoundError:
-        with open('n7_2cl_files_not_found.txt', 'a+', encoding='utf-8') as f:
+        with open('files_not_found/n7_2cl_files_not_found.txt', 'a+', encoding='utf-8') as f:
             f.write(f'n7-файла 2-го кластера от {date} не существует\n')
 print('test')
