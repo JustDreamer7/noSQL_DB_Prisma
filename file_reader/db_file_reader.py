@@ -5,10 +5,11 @@ from collections import defaultdict
 import pandas as pd
 import pymongo
 
-from file_reader.file_reader import FileReader
+
+# from file_reader.file_reader import FileReader
 
 
-class DbFileReader(FileReader):
+class DbFileReader:
     """Класс для чтения данных ПРИЗМА-32 из MongoDB базы данных, должен быть один для
     всех модулей"""
     # __DB_URL = "mongodb://localhost:27017/"
@@ -17,10 +18,11 @@ class DbFileReader(FileReader):
         __amp_n_cols.append(f'amp{i}')
         __amp_n_cols.append(f'n{i}')
 
-    __slots__ = ["__db_url"]
+    __slots__ = ["__db_url", "cluster", "single_date"]
 
     def __init__(self, cluster, single_date, db_url):
-        super().__init__(cluster, single_date)
+        self.cluster = cluster
+        self.single_date = single_date
         self.__db_url = db_url
 
     def reading_db(self) -> pd.DataFrame():
@@ -43,15 +45,16 @@ class DbFileReader(FileReader):
             data_cl[f'n{i}'] = n_dict[f'det_{i:02}']
         data_cl['time'] = [round(item / 1e9, 2) for item in data_cl['time_ns']]
         data_cl['Date'] = [datetime.date(int(item[0:4]), int(item[5:7]), int(item[8:10])) for item in data_cl['_id']]
-        t1 = time.time_ns()
+        # t1 = time.time_ns()
         # data_cl_normalize = pd.json_normalize(data_cl['detectors']) # Медленнее, чем фиговый вложенный цикл
         # data_cl_normalize.columns = self.__class__.__amp_n_cols   # c условиями (parsing_db)
         # data_cl = pd.concat([data_cl, data_cl_normalize], axis=1)
         data_cl = DbFileReader.parsing_db(data_cl,
                                           amp_dict=True,
+                                          # Комментарий, amp_dict - переменная, которая требует амплитуды
                                           n_dict=True,
                                           n_time_delay=False)  # Парсим данные из БД
-        print(f'parsing_db - {(time.time_ns() - t1) / 1e9}')
+        # print(f'parsing_db - {(time.time_ns() - t1) / 1e9}')
         return data_cl
 
     def concat_n_data(self, concat_n_df):
@@ -102,3 +105,20 @@ class DbFileReader(FileReader):
                     f"{single_date.day:02}.{single_date.year - 2000:02}', does not exist")
                 # Переделать n на коллекцию из БД
         return concat_n_df
+
+
+if __name__ == '__main__':
+    date_time_start = datetime.date(2018, 1, 1)  # посмотреть почему не собирается конец дня 2018-04-22
+    date_time_stop = datetime.date(2018, 12, 31)
+    t1 = time.time_ns()
+    for single_date in pd.date_range(date_time_start, date_time_stop):
+        try:
+            t2 = time.time_ns()
+            test = DbFileReader(cluster=1, single_date=single_date, db_url="mongodb://localhost:27017/")
+            test.reading_db()
+            print(f'time - {(time.time_ns() - t2) / 1e9}')
+        except FileNotFoundError:
+            print(
+                f"File n_{single_date.month:02}-" +
+                f"{single_date.day:02}.{single_date.year - 2000:02}', does not exist")
+    print(f'time - {(time.time_ns() - t1) / 1e9}')

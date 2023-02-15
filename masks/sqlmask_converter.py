@@ -36,7 +36,7 @@ def sqlmask_converter_to_nosql(cluster, start_date, end_date, mask_type):
 
 
 if __name__ == '__main__':
-    date_time_start = datetime.date(2021, 12, 1)
+    date_time_start = datetime.date(2012, 12, 1)
     date_time_stop = datetime.date(2021, 12, 31)
     sqlmask_converter_to_nosql(cluster=1, start_date=date_time_start, end_date=date_time_stop, mask_type='amp')
     sqlmask_converter_to_nosql(cluster=2, start_date=date_time_start, end_date=date_time_stop, mask_type='amp')
